@@ -58,7 +58,7 @@ function menu_pager_block_view($delta = '') {
     $block['content'] = array(
       '#theme' => 'item_list',
       '#items' => $items,
-      '#attributes' => array('class' => array('menu-pager')),
+      '#attributes' => array('class' => array('menu-pager', 'clearfix')),
       '#attached' => array(
         'css' => array(
           drupal_get_path('module', 'menu_pager') . '/css/menu_pager.css',
