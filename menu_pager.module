@@ -1,0 +1,157 @@
+<?php
+/**
+ * @file
+ * Adds a block to navigate to the current page's previous and next menu links.
+ */
+
+/** Core hooks ***************************************************************/
+
+/**
+ * Implements hook_block_info().
+ */
+function menu_pager_block_info() {
+  // Define a block for each menu. Can't be cached because each menu item can
+  // have a custom access callback.
+  $blocks = array();
+  foreach (menu_get_menus() as $menu_name => $menu_title) {
+    $blocks[$menu_name] = array(
+      'info' => t('Menu Pager - @menu_title', array('@menu_title' => $menu_title)),
+      'cache' => DRUPAL_NO_CACHE,
+    );
+  }
+  return $blocks;
+}
+
+/**
+ * Implements hook_block_view().
+ */
+function menu_pager_block_view($delta = '') {
+  // Show block if current page is in active menu trail of this menu and
+  // previous or next links exist.
+  if (
+    ($trail = menu_get_active_trail())
+    && ($menu_link = array_pop($trail))
+    && isset($menu_link['menu_name'])
+    && ($menu_link['menu_name'] === $delta)
+    && ($navigation = menu_pager_get_navigation($menu_link))
+    && (isset($navigation['previous']) || isset($navigation['next']))
+  ) {
+    $items = array();
+
+    // Previous link.
+    if (!empty($navigation['previous'])) {
+      $items['previous'] = array(
+        'data' => l('« ' . $navigation['previous']['link_title'], $navigation['previous']['link_path']),
+        'class' => array('menu-pager-previous'),
+      );
+    }
+
+    // Next link.
+    if (!empty($navigation['next'])) {
+      $items['next'] = array(
+        'data' => l($navigation['next']['link_title'] . ' »', $navigation['next']['link_path']),
+        'class' => array('menu-pager-next'),
+      );
+    }
+
+    // Build block.
+    $block['content'] = array(
+      '#theme' => 'item_list',
+      '#items' => $items,
+      '#attributes' => array('class' => array('menu-pager')),
+      '#attached' => array(
+        'css' => array(
+          drupal_get_path('module', 'menu_pager') . '/css/menu_pager.css',
+        ),
+      ),
+    );
+    return $block;
+  }
+}
+
+/** Our hooks ****************************************************************/
+
+/**
+ * Implements hook_menu_pager_ignore_paths().
+ */
+function menu_pager_menu_pager_ignore_paths($menu_name) {
+  $paths = array();
+
+  // Ignore Special Menu Items paths that don't actually link to anything.
+  if (module_exists('special_menu_items')) {
+    $paths[] = '<nolink>';
+    $paths[] = '<separator>';
+  }
+
+  // Ignore Menu Firstchild path, since our flat list will include the first
+  // child in the correct sequence anyway.
+  if (module_exists('menu_firstchild')) {
+    $paths[] = '<firstchild>';
+  }
+
+  return $paths;
+}
+
+/** API **********************************************************************/
+
+/**
+ * Returns array with previous and next links for a given $menu_link.
+ */
+function menu_pager_get_navigation($menu_link) {
+  $menu_name = $menu_link['menu_name'];
+  $navigation = &drupal_static(__FUNCTION__, array());
+
+  if (!isset($navigation[$menu_name])) {
+    // Build flat tree of main menu links.
+    $menu_links = menu_tree_all_data($menu_name);
+    $ignore = menu_pager_ignore_paths($menu_name);
+    _menu_pager_flatten_tree($menu_links, $flat_links, $ignore);
+
+    // Find previous and next links.
+    while ($flat_link = current($flat_links)) {
+      if ($flat_link['mlid'] === $menu_link['mlid']) {
+        $navigation[$menu_name]['previous'] = prev($flat_links);
+        next($flat_links);
+        $navigation[$menu_name]['next'] = next($flat_links);
+      }
+      next($flat_links);
+    }
+  }
+
+  return $navigation[$menu_name];
+}
+
+/**
+ * Recursively flattens tree of menu links.
+ */
+function _menu_pager_flatten_tree($menu_links, &$flat_links, $ignore) {
+  foreach ($menu_links as $key => &$value) {
+    // Add link if it has a path.
+    if (!in_array($value['link']['link_path'], $ignore)) {
+      $flat_links[] = array(
+        'mlid' => $value['link']['mlid'],
+        'link_path' => $value['link']['link_path'],
+        'link_title' => $value['link']['link_title'],
+      );
+    }
+
+    // Add link children.
+    if (!empty($value['below'])) {
+      _menu_pager_flatten_tree($value['below'], $flat_links, $ignore);
+    }
+  }
+}
+
+/**
+ * Define paths to NOT include in the pager.
+ */
+function menu_pager_ignore_paths($menu_name) {
+  $paths = &drupal_static(__FUNCTION__, array());
+
+  if (!isset($paths[$menu_name])) {
+    $paths[$menu_name] = module_invoke_all('menu_pager_ignore_paths', $menu_name);
+    drupal_alter('menu_pager_ignore_paths', $paths[$menu_name], $menu_name);
+  }
+
+  return $paths[$menu_name];
+}

@@ -1,0 +1,4 @@
+name = Menu Pager
+description = Adds a block to navigate to the current page's previous and next menu links.
+core = 7.x
+dependencies[] = menu
