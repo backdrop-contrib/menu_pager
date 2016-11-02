@@ -1,15 +1,15 @@
-ul.menu-pager {
+.item-list .menu-pager {
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-ul.menu-pager li.menu-pager-previous {
+.menu-pager .menu-pager-previous {
   float: left;
   margin: 0;
 }
 
-ul.menu-pager li.menu-pager-next {
+.menu-pager .menu-pager-next {
   float: right;
   margin: 0;
 }
