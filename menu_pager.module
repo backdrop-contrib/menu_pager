@@ -23,6 +23,26 @@ function menu_pager_block_info() {
 }
 
 /**
+ * Implements hook_block_configure().
+ */
+function menu_pager_block_configure($delta = '') {
+  $form['menu_pager_restrict_to_parent_' . $delta] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Restrict to parent'),
+    '#description' => t('If checked, only previous and next links with the same menu parent as the active menu link will be used.'),
+    '#default_value' => variable_get('menu_pager_restrict_to_parent_' . $delta, FALSE),
+  );
+  return $form;
+}
+
+/**
+ * Implements hook_block_save().
+ */
+function menu_pager_block_save($delta = '', $edit = array()) {
+  variable_set('menu_pager_restrict_to_parent_' . $delta, $edit['menu_pager_restrict_to_parent_' . $delta]);
+}
+
+/**
  * Implements hook_block_view().
  */
 function menu_pager_block_view($delta = '') {
@@ -33,7 +53,7 @@ function menu_pager_block_view($delta = '') {
     && ($menu_link = array_pop($trail))
     && isset($menu_link['menu_name'])
     && ($menu_link['menu_name'] === $delta)
-    && ($navigation = menu_pager_get_navigation($menu_link))
+    && ($navigation = menu_pager_get_navigation($menu_link, variable_get('menu_pager_restrict_to_parent_' . $delta, FALSE)))
     && (isset($navigation['previous']) || isset($navigation['next']))
   ) {
     $items = array();
@@ -96,8 +116,17 @@ function menu_pager_menu_pager_ignore_paths($menu_name) {
 
 /**
  * Returns array with previous and next links for a given $menu_link.
+ *
+ * @param $menu_link
+ *   A menu link array.
+ * @param $restrict_to_parent
+ *   (optional) A boolean to indicate whether or not to restrict the previous
+ *   and next links to the menu's parent. Defaults to FALSE.
+ *
+ * @return
+ *   An array with 'previous' and 'next' links, if found.
  */
-function menu_pager_get_navigation($menu_link) {
+function menu_pager_get_navigation($menu_link, $restrict_to_parent = FALSE) {
   $menu_name = $menu_link['menu_name'];
   $navigation = &drupal_static(__FUNCTION__, array());
 
@@ -110,9 +139,18 @@ function menu_pager_get_navigation($menu_link) {
     // Find previous and next links.
     while ($flat_link = current($flat_links)) {
       if ($flat_link['mlid'] === $menu_link['mlid']) {
-        $navigation[$menu_name]['previous'] = prev($flat_links);
+        $previous = prev($flat_links);
         next($flat_links);
-        $navigation[$menu_name]['next'] = next($flat_links);
+        $next = next($flat_links);
+
+        // Add if found an not restricting to parent, or both links share same
+        // parent.
+        if ($previous && (!$restrict_to_parent || $previous['plid'] === $menu_link['plid'])) {
+          $navigation[$menu_name]['previous'] = $previous;
+        }
+        if ($next && (!$restrict_to_parent || $next['plid'] === $menu_link['plid'])) {
+          $navigation[$menu_name]['next'] = $next;
+        }
       }
       next($flat_links);
     }
@@ -130,6 +168,7 @@ function _menu_pager_flatten_tree($menu_links, &$flat_links, $ignore) {
     if (!in_array($value['link']['link_path'], $ignore)) {
       $flat_links[] = array(
         'mlid' => $value['link']['mlid'],
+        'plid' => $value['link']['plid'],
         'link_path' => $value['link']['link_path'],
         'link_title' => $value['link']['link_title'],
       );

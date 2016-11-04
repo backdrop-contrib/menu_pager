@@ -1,0 +1,9 @@
+<?php
+
+/**
+ * Implements hook_uninstall().
+ */
+function menu_pager_uninstall() {
+  // Delete variables.
+  db_query("DELETE FROM {variable} WHERE name LIKE 'menu_pager%'");
+}
