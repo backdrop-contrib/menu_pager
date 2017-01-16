@@ -139,11 +139,16 @@ function menu_pager_get_navigation($menu_link, $restrict_to_parent = FALSE) {
     // Find previous and next links.
     while ($flat_link = current($flat_links)) {
       if ($flat_link['mlid'] === $menu_link['mlid']) {
-        $previous = prev($flat_links);
-        next($flat_links);
+        if (key($flat_links) === 0) {
+          $previous = FALSE;
+        }
+        else {
+          $previous = prev($flat_links);
+          next($flat_links);
+        }
         $next = next($flat_links);
 
-        // Add if found an not restricting to parent, or both links share same
+        // Add if found and not restricting to parent, or both links share same
         // parent.
         if ($previous && (!$restrict_to_parent || $previous['plid'] === $menu_link['plid'])) {
           $navigation[$menu_name]['previous'] = $previous;
@@ -152,7 +157,9 @@ function menu_pager_get_navigation($menu_link, $restrict_to_parent = FALSE) {
           $navigation[$menu_name]['next'] = $next;
         }
       }
-      next($flat_links);
+      else {
+        next($flat_links);
+      }
     }
   }
 
