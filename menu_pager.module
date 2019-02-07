@@ -172,7 +172,7 @@ function menu_pager_get_navigation($menu_link, $restrict_to_parent = FALSE) {
 function _menu_pager_flatten_tree($menu_links, &$flat_links, $ignore) {
   foreach ($menu_links as $key => &$value) {
     // Add link if it has a path.
-    if (!in_array($value['link']['link_path'], $ignore)) {
+    if (!in_array($value['link']['link_path'], $ignore) && !$value['link']['hidden']) {
       $flat_links[] = array(
         'mlid' => $value['link']['mlid'],
         'plid' => $value['link']['plid'],
