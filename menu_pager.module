@@ -43,6 +43,52 @@ function menu_pager_block_save($delta = '', $edit = array()) {
 }
 
 /**
+ * Implements hook_theme().
+ */
+function menu_pager_theme() {
+  return array(
+    // Next menu pager theme.
+    'menu_pager_previous' => array(
+      'variables' => array(
+        'link_title' => NULL
+       ),
+    ),
+    // Previous menu pager theme.
+    'menu_pager_next' => array(
+      'variables' => array(
+        'link_title' => NULL
+      ),
+    )
+  );
+}
+
+/**
+ * Returns link text for a previous menu link.
+ *
+ * @param $variables
+ *   An associative array containing:
+ *   - element: Structured array data for a previous menu link.
+ *
+ * @ingroup themeable
+ */
+function theme_menu_pager_previous(array $variables) {
+  return '« ' . $variables['link_title'];
+}
+
+/**
+ * Returns link text for a next menu link.
+ *
+ * @param $variables
+ *   An associative array containing:
+ *   - element: Structured array data for a next menu link.
+ *
+ * @ingroup themeable
+ */
+function theme_menu_pager_next(array $variables) {
+  return $variables['link_title'] . ' »';
+}
+
+/**
  * Implements hook_block_view().
  */
 function menu_pager_block_view($delta = '') {
@@ -60,16 +106,20 @@ function menu_pager_block_view($delta = '') {
 
     // Previous link.
     if (!empty($navigation['previous'])) {
+      $link_title_previous = theme('menu_pager_previous', array('link_title' => $navigation['previous']['link_title']));
+
       $items['previous'] = array(
-        'data' => l('« ' . $navigation['previous']['link_title'], $navigation['previous']['link_path']),
+        'data' => l($link_title_previous, $navigation['previous']['link_path']),
         'class' => array('menu-pager-previous'),
       );
     }
 
     // Next link.
     if (!empty($navigation['next'])) {
+      $link_title_next = theme('menu_pager_next', array('link_title' => $navigation['next']['link_title']));
+
       $items['next'] = array(
-        'data' => l($navigation['next']['link_title'] . ' »', $navigation['next']['link_path']),
+        'data' => l($link_title_next, $navigation['next']['link_path']),
         'class' => array('menu-pager-next'),
       );
     }
