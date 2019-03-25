@@ -187,33 +187,35 @@ function menu_pager_get_navigation($menu_link, $restrict_to_parent = FALSE) {
     _menu_pager_flatten_tree($menu_links, $flat_links, $ignore);
 
     // Find previous and next links.
-    while ($flat_link = current($flat_links)) {
-      if ($flat_link['mlid'] === $menu_link['mlid']) {
-        if (key($flat_links) === 0) {
-          $previous = FALSE;
+    if ($flat_links) {
+      while ($flat_link = current($flat_links)) {
+        if ($flat_link['mlid'] === $menu_link['mlid']) {
+          if (key($flat_links) === 0) {
+            $previous = FALSE;
+          }
+          else {
+            $previous = prev($flat_links);
+            next($flat_links);
+          }
+          $next = next($flat_links);
+
+          // Add if found and not restricting to parent, or both links share same
+          // parent.
+          if ($previous && (!$restrict_to_parent || $previous['plid'] === $menu_link['plid'])) {
+            $navigation[$menu_name]['previous'] = $previous;
+          }
+          if ($next && (!$restrict_to_parent || $next['plid'] === $menu_link['plid'])) {
+            $navigation[$menu_name]['next'] = $next;
+          }
         }
         else {
-          $previous = prev($flat_links);
           next($flat_links);
         }
-        $next = next($flat_links);
-
-        // Add if found and not restricting to parent, or both links share same
-        // parent.
-        if ($previous && (!$restrict_to_parent || $previous['plid'] === $menu_link['plid'])) {
-          $navigation[$menu_name]['previous'] = $previous;
-        }
-        if ($next && (!$restrict_to_parent || $next['plid'] === $menu_link['plid'])) {
-          $navigation[$menu_name]['next'] = $next;
-        }
-      }
-      else {
-        next($flat_links);
       }
     }
   }
 
-  return $navigation[$menu_name];
+  return isset($navigation[$menu_name]) ? $navigation[$menu_name] : [];
 }
 
 /**
