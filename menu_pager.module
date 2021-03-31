@@ -4,104 +4,56 @@
  * Adds a block to navigate to the current page's previous and next menu links.
  */
 
-/** Core hooks ***************************************************************/
-
 /**
  * Implements hook_block_info().
  */
 function menu_pager_block_info() {
+  $blocks = array();
+
   // Define a block for each menu. Can't be cached because each menu item can
   // have a custom access callback.
-  $blocks = array();
   foreach (menu_get_menus() as $menu_name => $menu_title) {
     $blocks[$menu_name] = array(
       'info' => t('Menu Pager - @menu_title', array('@menu_title' => $menu_title)),
-      'cache' => DRUPAL_NO_CACHE,
+      'description' => t('Display previous/next links to pages in the same menu.'),
+      'cache' => BACKDROP_NO_CACHE,
     );
   }
+
   return $blocks;
 }
 
 /**
  * Implements hook_block_configure().
  */
-function menu_pager_block_configure($delta = '') {
-  $form['menu_pager_restrict_to_parent_' . $delta] = array(
-    '#type' => 'checkbox',
-    '#title' => t('Restrict to parent'),
-    '#description' => t('If checked, only previous and next links with the same menu parent as the active menu link will be used.'),
-    '#default_value' => variable_get('menu_pager_restrict_to_parent_' . $delta, FALSE),
+function menu_pager_block_configure($delta = '', $settings = array()) {
+  // Set default value.
+  $settings += array(
+    'restrict_to_parent' => FALSE,
   );
-  return $form;
-}
 
-/**
- * Implements hook_block_save().
- */
-function menu_pager_block_save($delta = '', $edit = array()) {
-  variable_set('menu_pager_restrict_to_parent_' . $delta, $edit['menu_pager_restrict_to_parent_' . $delta]);
-}
-
-/**
- * Implements hook_theme().
- */
-function menu_pager_theme() {
   return array(
-    // Next menu pager theme.
-    'menu_pager_previous' => array(
-      'variables' => array(
-        'link_title' => NULL
-       ),
+    'restrict_to_parent' => array(
+      '#type' => 'checkbox',
+      '#title' => t('Restrict to parent'),
+      '#description' => t('If checked, only previous and next links with the same menu parent as the active menu link will be used.'),
+      '#default_value' => $settings['restrict_to_parent'],
     ),
-    // Previous menu pager theme.
-    'menu_pager_next' => array(
-      'variables' => array(
-        'link_title' => NULL
-      ),
-    )
   );
-}
-
-/**
- * Returns link text for a previous menu link.
- *
- * @param $variables
- *   An associative array containing:
- *   - element: Structured array data for a previous menu link.
- *
- * @ingroup themeable
- */
-function theme_menu_pager_previous(array $variables) {
-  return '« ' . $variables['link_title'];
-}
-
-/**
- * Returns link text for a next menu link.
- *
- * @param $variables
- *   An associative array containing:
- *   - element: Structured array data for a next menu link.
- *
- * @ingroup themeable
- */
-function theme_menu_pager_next(array $variables) {
-  return $variables['link_title'] . ' »';
 }
 
 /**
  * Implements hook_block_view().
  */
-function menu_pager_block_view($delta = '') {
+function menu_pager_block_view($delta = '', $settings = array(), $contexts = array()) {
+  $trail = menu_get_active_trail();
+  $menu_link = array_pop($trail);
+  $navigation = menu_pager_get_navigation($menu_link, $settings['restrict_to_parent']);
+  $nav_has_links = isset($navigation['previous']) || isset($navigation['next']);
+
   // Show block if current page is in active menu trail of this menu and
   // previous or next links exist.
-  if (
-    ($trail = menu_get_active_trail())
-    && ($menu_link = array_pop($trail))
-    && isset($menu_link['menu_name'])
-    && ($menu_link['menu_name'] === $delta)
-    && ($navigation = menu_pager_get_navigation($menu_link, variable_get('menu_pager_restrict_to_parent_' . $delta, FALSE)))
-    && (isset($navigation['previous']) || isset($navigation['next']))
-  ) {
+  if (isset($menu_link['menu_name']) && $menu_link['menu_name'] === $delta && $nav_has_links) {
     $items = array();
 
     // Previous link.
@@ -125,60 +77,80 @@ function menu_pager_block_view($delta = '') {
     }
 
     // Build block.
-    $block['content'] = array(
-      '#theme' => 'item_list',
-      '#items' => $items,
-      '#attributes' => array('class' => array('menu-pager', 'clearfix')),
-      '#attached' => array(
-        'css' => array(
-          drupal_get_path('module', 'menu_pager') . '/css/menu_pager.css',
+    return array(
+      'content' => array(
+        '#theme' => 'item_list',
+        '#items' => $items,
+        '#attributes' => array('class' => array('menu-pager', 'clearfix')),
+        '#attached' => array(
+          'css' => array(
+            backdrop_get_path('module', 'menu_pager') . '/css/menu_pager.css',
+          ),
         ),
       ),
     );
-    return $block;
   }
 }
 
-/** Our hooks ****************************************************************/
-
 /**
- * Implements hook_menu_pager_ignore_paths().
+ * Implements hook_theme().
  */
-function menu_pager_menu_pager_ignore_paths($menu_name) {
-  $paths = array();
-
-  // Ignore Special Menu Items paths that don't actually link to anything.
-  if (module_exists('special_menu_items')) {
-    $paths[] = '<nolink>';
-    $paths[] = '<separator>';
-  }
-
-  // Ignore Menu Firstchild path, since our flat list will include the first
-  // child in the correct sequence anyway.
-  if (module_exists('menu_firstchild')) {
-    $paths[] = '<firstchild>';
-  }
-
-  return $paths;
+function menu_pager_theme() {
+  return array(
+    'menu_pager_previous' => array(
+      'variables' => array(
+        'link_title' => NULL,
+       ),
+    ),
+    'menu_pager_next' => array(
+      'variables' => array(
+        'link_title' => NULL,
+      ),
+    ),
+  );
 }
 
-/** API **********************************************************************/
+/**
+ * Returns HTML for a previous menu link.
+ *
+ * @param array $variables
+ *   An associative array containing:
+ *   - link_title: The title to use for the previous menu link.
+ *
+ * @ingroup themeable
+ */
+function theme_menu_pager_previous($variables) {
+  return '« ' . $variables['link_title'];
+}
 
 /**
- * Returns array with previous and next links for a given $menu_link.
+ * Returns HTML for a next menu link.
  *
- * @param $menu_link
+ * @param array $variables
+ *   An associative array containing:
+ *   - link_title: The title to use for the next menu link.
+ *
+ * @ingroup themeable
+ */
+function theme_menu_pager_next(array $variables) {
+  return $variables['link_title'] . ' »';
+}
+
+/**
+ * Returns an array with previous and next links for a given menu link.
+ *
+ * @param array $menu_link
  *   A menu link array.
- * @param $restrict_to_parent
+ * @param bool $restrict_to_parent
  *   (optional) A boolean to indicate whether or not to restrict the previous
  *   and next links to the menu's parent. Defaults to FALSE.
  *
- * @return
+ * @return array
  *   An array with 'previous' and 'next' links, if found.
  */
 function menu_pager_get_navigation($menu_link, $restrict_to_parent = FALSE) {
   $menu_name = $menu_link['menu_name'];
-  $navigation = &drupal_static(__FUNCTION__, array());
+  $navigation = &backdrop_static(__FUNCTION__, array());
 
   if (!isset($navigation[$menu_name])) {
     // Build flat tree of main menu links.
@@ -199,8 +171,8 @@ function menu_pager_get_navigation($menu_link, $restrict_to_parent = FALSE) {
           }
           $next = next($flat_links);
 
-          // Add if found and not restricting to parent, or both links share same
-          // parent.
+          // Add if found and not restricting to parent, or both links share
+          // same parent.
           if ($previous && (!$restrict_to_parent || $previous['plid'] === $menu_link['plid'])) {
             $navigation[$menu_name]['previous'] = $previous;
           }
@@ -215,11 +187,11 @@ function menu_pager_get_navigation($menu_link, $restrict_to_parent = FALSE) {
     }
   }
 
-  return isset($navigation[$menu_name]) ? $navigation[$menu_name] : [];
+  return isset($navigation[$menu_name]) ? $navigation[$menu_name] : array();
 }
 
 /**
- * Recursively flattens tree of menu links.
+ * Recursively flattens a tree of menu links.
  */
 function _menu_pager_flatten_tree($menu_links, &$flat_links, $ignore) {
   foreach ($menu_links as $key => &$value) {
@@ -244,12 +216,33 @@ function _menu_pager_flatten_tree($menu_links, &$flat_links, $ignore) {
  * Define paths to NOT include in the pager.
  */
 function menu_pager_ignore_paths($menu_name) {
-  $paths = &drupal_static(__FUNCTION__, array());
+  $paths = &backdrop_static(__FUNCTION__, array());
 
   if (!isset($paths[$menu_name])) {
     $paths[$menu_name] = module_invoke_all('menu_pager_ignore_paths', $menu_name);
-    drupal_alter('menu_pager_ignore_paths', $paths[$menu_name], $menu_name);
+    backdrop_alter('menu_pager_ignore_paths', $paths[$menu_name], $menu_name);
   }
 
   return $paths[$menu_name];
+}
+
+/**
+ * Implements hook_menu_pager_ignore_paths().
+ */
+function menu_pager_menu_pager_ignore_paths($menu_name) {
+  $paths = array();
+
+  // Ignore Special Menu Items paths that don't actually link to anything.
+  if (module_exists('special_menu_items')) {
+    $paths[] = '<nolink>';
+    $paths[] = '<separator>';
+  }
+
+  // Ignore Menu Firstchild paths, since our flat list will include the first
+  // child in the correct sequence anyway.
+  if (module_exists('menu_firstchild')) {
+    $paths[] = '<firstchild>';
+  }
+
+  return $paths;
 }
