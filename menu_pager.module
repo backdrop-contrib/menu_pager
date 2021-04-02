@@ -10,12 +10,17 @@
 function menu_pager_block_info() {
   $blocks = array();
 
-  // Define a block for each menu. Can't be cached because each menu item can
+  // Define blocks for each menu. Can't be cached because each menu item can
   // have a custom access callback.
   foreach (menu_get_menus() as $menu_name => $menu_title) {
     $blocks[$menu_name] = array(
-      'info' => t('Menu Pager - @menu_title', array('@menu_title' => $menu_title)),
+      'info' => t('Menu pager: @menu_title', array('@menu_title' => $menu_title)),
       'description' => t('Display previous/next links to pages in the same menu.'),
+      'cache' => BACKDROP_NO_CACHE,
+    );
+    $blocks[$menu_name . '-children'] = array(
+      'info' => t('Menu pager (children): @menu_title', array('@menu_title' => $menu_title)),
+      'description' => t('Display links to child pages in the same menu.'),
       'cache' => BACKDROP_NO_CACHE,
     );
   }
@@ -27,19 +32,21 @@ function menu_pager_block_info() {
  * Implements hook_block_configure().
  */
 function menu_pager_block_configure($delta = '', $settings = array()) {
-  // Set default value.
-  $settings += array(
-    'restrict_to_parent' => FALSE,
-  );
+  if (substr($delta, -9) !== '-children') {
+    // Set default value.
+    $settings += array(
+      'restrict_to_parent' => FALSE,
+    );
 
-  return array(
-    'restrict_to_parent' => array(
-      '#type' => 'checkbox',
-      '#title' => t('Restrict to parent'),
-      '#description' => t('If checked, only previous and next links with the same menu parent as the active menu link will be used.'),
-      '#default_value' => $settings['restrict_to_parent'],
-    ),
-  );
+    return array(
+      'restrict_to_parent' => array(
+        '#type' => 'checkbox',
+        '#title' => t('Restrict to parent'),
+        '#description' => t('If checked, only previous and next links with the same menu parent as the active menu link will be used.'),
+        '#default_value' => $settings['restrict_to_parent'],
+      ),
+    );
+  }
 }
 
 /**
@@ -48,37 +55,40 @@ function menu_pager_block_configure($delta = '', $settings = array()) {
 function menu_pager_block_view($delta = '', $settings = array(), $contexts = array()) {
   $trail = menu_get_active_trail();
   $menu_link = array_pop($trail);
-  $navigation = menu_pager_get_navigation($menu_link, $settings['restrict_to_parent']);
-  $nav_has_links = isset($navigation['previous']) || isset($navigation['next']);
+  $block_content = array();
 
-  // Show block if current page is in active menu trail of this menu and
-  // previous or next links exist.
-  if (isset($menu_link['menu_name']) && $menu_link['menu_name'] === $delta && $nav_has_links) {
-    $items = array();
+  // Menu pager block.
+  if (substr($delta, -9) !== '-children') {
+    $navigation = menu_pager_get_navigation($menu_link, $settings['restrict_to_parent']);
+    $nav_has_links = isset($navigation['previous']) || isset($navigation['next']);
 
-    // Previous link.
-    if (!empty($navigation['previous'])) {
-      $link_title_previous = theme('menu_pager_previous', array('link_title' => $navigation['previous']['link_title']));
+    // Show block if current page is in active menu trail of this menu and
+    // previous or next links exist.
+    if (isset($menu_link['menu_name']) && $menu_link['menu_name'] === $delta && $nav_has_links) {
+      $items = array();
 
-      $items['previous'] = array(
-        'data' => l($link_title_previous, $navigation['previous']['link_path']),
-        'class' => array('menu-pager-previous'),
-      );
-    }
+      // Previous link.
+      if (!empty($navigation['previous'])) {
+        $link_title_previous = theme('menu_pager_previous', array('link_title' => $navigation['previous']['link_title']));
 
-    // Next link.
-    if (!empty($navigation['next'])) {
-      $link_title_next = theme('menu_pager_next', array('link_title' => $navigation['next']['link_title']));
+        $items['previous'] = array(
+          'data' => l($link_title_previous, $navigation['previous']['link_path']),
+          'class' => array('menu-pager-previous'),
+        );
+      }
 
-      $items['next'] = array(
-        'data' => l($link_title_next, $navigation['next']['link_path']),
-        'class' => array('menu-pager-next'),
-      );
-    }
+      // Next link.
+      if (!empty($navigation['next'])) {
+        $link_title_next = theme('menu_pager_next', array('link_title' => $navigation['next']['link_title']));
 
-    // Build block.
-    return array(
-      'content' => array(
+        $items['next'] = array(
+          'data' => l($link_title_next, $navigation['next']['link_path']),
+          'class' => array('menu-pager-next'),
+        );
+      }
+
+      // Build block.
+      $block_content = array(
         '#theme' => 'item_list',
         '#items' => $items,
         '#attributes' => array('class' => array('menu-pager', 'clearfix')),
@@ -87,9 +97,34 @@ function menu_pager_block_view($delta = '', $settings = array(), $contexts = arr
             backdrop_get_path('module', 'menu_pager') . '/css/menu_pager.css',
           ),
         ),
-      ),
-    );
+      );
+    }
   }
+
+  // Menu pager children block.
+  if (substr($delta, -9) === '-children') {
+    $delta = substr($delta, 0, -9);
+    $children = menu_pager_get_children($menu_link);
+
+    // Show block if current page is in active menu trail of this menu and child
+    // links exist.
+    if (isset($menu_link['menu_name']) && $menu_link['menu_name'] === $delta && !empty($children)) {
+      $items = array();
+
+      foreach ($children as $child) {
+        $items[] = array('data' => l($child['link_title'], $child['link_path']));
+      }
+
+      // Build block.
+      $block_content = array(
+        '#theme' => 'item_list',
+        '#items' => $items,
+        '#attributes' => array('class' => array('menu-pager-children')),
+      );
+    }
+  }
+
+  return array('content' => $block_content);
 }
 
 /**
@@ -153,13 +188,8 @@ function menu_pager_get_navigation($menu_link, $restrict_to_parent = FALSE) {
   $navigation = &backdrop_static(__FUNCTION__, array());
 
   if (!isset($navigation[$menu_name])) {
-    // Build flat tree of main menu links.
-    $menu_links = menu_tree_all_data($menu_name);
-    $ignore = menu_pager_ignore_paths($menu_name);
-    _menu_pager_flatten_tree($menu_links, $flat_links, $ignore);
-
     // Find previous and next links.
-    if ($flat_links) {
+    if ($flat_links = menu_pager_get_menu_tree($menu_name)) {
       while ($flat_link = current($flat_links)) {
         if ($flat_link['mlid'] === $menu_link['mlid']) {
           if (key($flat_links) === 0) {
@@ -188,6 +218,54 @@ function menu_pager_get_navigation($menu_link, $restrict_to_parent = FALSE) {
   }
 
   return isset($navigation[$menu_name]) ? $navigation[$menu_name] : array();
+}
+
+/**
+ * Returns an array with child links for a given menu link.
+ *
+ * @param array $menu_link
+ *   A menu link array.
+ *
+ * @return array
+ *   An array of child links.
+ */
+function menu_pager_get_children($menu_link) {
+  $menu_name = $menu_link['menu_name'];
+  $children = &backdrop_static(__FUNCTION__, array());
+
+  if (!isset($children[$menu_name])) {
+    $tree = menu_pager_get_menu_tree($menu_name);
+
+    while ($current = current($tree)) {
+      if ($current['plid'] === $menu_link['mlid']) {
+        $children[$menu_name][] = $current;
+      }
+      next($tree);
+    }
+  }
+
+  return isset($children[$menu_name]) ? $children[$menu_name] : array();
+}
+
+/**
+ * Returns an array representing a flattened menu tree.
+ *
+ * @param array $menu_name
+ *   The name of the menu to get the tree for.
+ *
+ * @return array
+ *   A flattened menu tree array.
+ */
+function menu_pager_get_menu_tree($menu_name) {
+  $tree = &backdrop_static(__FUNCTION__, array());
+
+  if (empty($tree)) {
+    $menu_links = menu_tree_all_data($menu_name);
+    $ignore = menu_pager_ignore_paths($menu_name);
+    _menu_pager_flatten_tree($menu_links, $tree, $ignore);
+  }
+
+  return $tree;
 }
 
 /**
