@@ -1,13 +1,33 @@
 Menu Pager
 ==========
 
-Menu Pager adds a block for each menu that displays previous and next links
+Menu Pager adds blocks for each menu that display previous/next or child links,
 based on the current page.
 
-It does this by flattening the menu tree to calculate which links should come
-before and after the menu link corresponding to the current page. This can
-optionally be restricted to links with the same parent as the active menu link
-(by default, it traverses the entire menu tree).
+For example, given the following menu hierarchy, if you're on the 'Installing
+software' page...
+
+```
+- Setting up your OS
+  - Installing
+  - Configuring
+- Installing software
+  - App store introduction
+  - Installing an app
+  - Finding good-quality apps
+- Getting help & support
+```
+
+The 'Menu pager' block will show a 'previous' link pointing to 'Configuring',
+and a 'next' link pointing to 'App store introduction'.
+
+The 'Menu pager (children)' block will show the following links:
+
+```
+- App store introduction
+- Installing an app
+- Finding good-quality apps
+```
 
 Installation
 ------------
@@ -15,7 +35,8 @@ Installation
 - Install this module using the official Backdrop CMS instructions at
   https://backdropcms.org/guide/modules.
 
-- Add a Menu Pager block to a layout to display previous/next links.
+- Add a Menu Pager block to a layout to display previous/next links, or a Menu
+  Pager (Children) block to display child links (or both!).
 
 Issues
 ------
