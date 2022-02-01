@@ -256,7 +256,7 @@ function menu_pager_get_children($menu_link) {
 /**
  * Returns an array representing a flattened menu tree.
  *
- * @param array $menu_name
+ * @param string $menu_name
  *   The name of the menu to get the tree for.
  *
  * @return array
