@@ -47,7 +47,7 @@ https://github.com/backdrop-contrib/menu_pager/issues.
 Current Maintainers
 -------------------
 
-- [Peter Anderson](https://github.com/BWPanda)
+- Seeking maintainer(s)
 
 Credits
 -------
