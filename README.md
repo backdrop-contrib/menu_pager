@@ -47,7 +47,8 @@ https://github.com/backdrop-contrib/menu_pager/issues.
 Current Maintainers
 -------------------
 
-- Seeking maintainer(s)
+- [Martin Price](https://github.com/yorkshire-pudding) - [System Horizons Ltd](https://www.systemhorizons.co.uk)
+- Collaboration and co-maintainers welcome!
 
 Credits
 -------
