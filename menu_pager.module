@@ -203,6 +203,17 @@ function menu_pager_get_navigation(array $menu_link, $restrict_to_parent = FALSE
   if (!isset($navigation[$menu_name])) {
     // Find previous and next links.
     if ($flat_links = menu_pager_get_menu_tree($menu_name)) {
+      // If restrict to parent, then reduce the list to link and siblings.
+      if ($restrict_to_parent) {
+        $flat_links_restricted = array();
+        foreach ($flat_links as $link) {
+          if ($link['plid'] == $menu_link['plid']) {
+            $flat_links_restricted[] = $link;
+          }
+        }
+        $flat_links = $flat_links_restricted;
+      }
+      // Loop through to get the next and previous links.
       while ($flat_link = current($flat_links)) {
         if ($flat_link['mlid'] === $menu_link['mlid']) {
           if (key($flat_links) === 0) {
