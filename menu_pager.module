@@ -135,7 +135,7 @@ function menu_pager_theme() {
     'menu_pager_previous' => array(
       'variables' => array(
         'link_title' => NULL,
-       ),
+      ),
     ),
     'menu_pager_next' => array(
       'variables' => array(
@@ -154,7 +154,7 @@ function menu_pager_theme() {
  *
  * @ingroup themeable
  */
-function theme_menu_pager_previous($variables) {
+function theme_menu_pager_previous(array $variables) {
   return '« ' . $variables['link_title'];
 }
 
@@ -183,7 +183,7 @@ function theme_menu_pager_next(array $variables) {
  * @return array
  *   An array with 'previous' and 'next' links, if found.
  */
-function menu_pager_get_navigation($menu_link, $restrict_to_parent = FALSE) {
+function menu_pager_get_navigation(array $menu_link, $restrict_to_parent = FALSE) {
   if (!isset($menu_link['menu_name'])) {
     return array();
   }
@@ -232,7 +232,7 @@ function menu_pager_get_navigation($menu_link, $restrict_to_parent = FALSE) {
  * @return array
  *   An array of child links.
  */
-function menu_pager_get_children($menu_link) {
+function menu_pager_get_children(array $menu_link) {
   if (!isset($menu_link['menu_name'])) {
     return array();
   }
