@@ -59,6 +59,11 @@ function menu_pager_block_view($delta = '', $settings = array(), $contexts = arr
 
   // Menu pager block.
   if (substr($delta, -9) !== '-children') {
+    // Ensure the menu link relates to the menu in the delta value of the
+    // block.
+    if ($delta_menu_link = menu_link_get_preferred($menu_link['href'], $delta)) {
+      $menu_link = $delta_menu_link;
+    }
     $navigation = menu_pager_get_navigation($menu_link, $settings['restrict_to_parent']);
     $nav_has_links = isset($navigation['previous']) || isset($navigation['next']);
 
@@ -104,6 +109,11 @@ function menu_pager_block_view($delta = '', $settings = array(), $contexts = arr
   // Menu pager children block.
   if (substr($delta, -9) === '-children') {
     $delta = substr($delta, 0, -9);
+    // Ensure the menu link relates to the menu in the delta value of the
+    // block.
+    if ($delta_menu_link = menu_link_get_preferred($menu_link['href'], $delta)) {
+      $menu_link = $delta_menu_link;
+    }
     $children = menu_pager_get_children($menu_link);
 
     // Show block if current page is in active menu trail of this menu and child
