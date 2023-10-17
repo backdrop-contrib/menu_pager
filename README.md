@@ -44,7 +44,9 @@ https://github.com/backdrop-contrib/menu_pager/issues.
 
 ### Known Issues
 
-There is currently no upgrade path from Drupal 7 - see [issue #1](https://github.com/backdrop-contrib/menu_pager/issues/1)
+- There is currently no upgrade path from Drupal 7 as this would be very
+complex and the numbers of Drupal 7 installs are quite low - see
+[issue #1](https://github.com/backdrop-contrib/menu_pager/issues/1)
 
 ## Current Maintainers
 
