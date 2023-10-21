@@ -37,6 +37,8 @@ The 'Menu pager (children)' block will show the following links:
 - Add a Menu Pager block to a layout to display previous/next links, or a Menu
   Pager (Children) block to display child links (or both!).
 
+- If required, override the previous and next titles with custom labels.
+
 ## Issues
 
 Bugs and Feature requests should be reported in the Issue Queue:

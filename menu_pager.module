@@ -37,16 +37,46 @@ function menu_pager_block_configure($delta = '', $settings = array()) {
     $settings += array(
       'restrict_to_parent' => FALSE,
     );
-
-    return array(
-      'restrict_to_parent' => array(
-        '#type' => 'checkbox',
-        '#title' => t('Restrict to parent'),
-        '#description' => t('If checked, only previous and next links with the same menu parent as the active menu link will be used.'),
-        '#default_value' => $settings['restrict_to_parent'],
-      ),
+    $form['restrict_to_parent'] = array(
+      '#type' => 'checkbox',
+      '#title' => t('Restrict to parent'),
+      '#description' => t('If checked, only previous and next links with the same menu parent as the active menu link will be used.'),
+      '#default_value' => $settings['restrict_to_parent'],
     );
   }
+
+  $form['custom_labels'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Display custom labels'),
+    '#default_value' => $settings['custom_labels'],
+  );
+  $form['previous_label'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Previous label'),
+    '#description' => t('This will overwrite the text for the previous label.<br />Leave empty for node title prefixed with "<< "'),
+    '#maxlength' => 64,
+    '#size' => 64,
+    '#default_value' => isset($settings['previous_label']) ? $settings['previous_label'] : '',
+    '#states' => array(
+      'visible' => array(
+        ':input[name="block_settings[custom_labels]"]' => array('checked' => TRUE),
+      ),
+    ),
+  );
+  $form['next_label'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Next label'),
+    '#description' => t('This will overwrite the text for the next label.<br />Leave empty for node title suffixed with " >>"'),
+    '#maxlength' => 64,
+    '#size' => 64,
+    '#default_value' => isset($settings['next_label']) ? $settings['next_label'] : '',
+    '#states' => array(
+      'visible' => array(
+        ':input[name="block_settings[custom_labels]"]' => array('checked' => TRUE),
+      ),
+    ),
+  );
+  return $form;
 }
 
 /**
@@ -74,7 +104,8 @@ function menu_pager_block_view($delta = '', $settings = array(), $contexts = arr
 
       // Previous link.
       if (!empty($navigation['previous'])) {
-        $link_title_previous = theme('menu_pager_previous', array('link_title' => $navigation['previous']['link_title']));
+        $title = isset($settings['previous_label']) ? $settings['previous_label'] : "<< " . $navigation['previous']['link_title'];
+        $link_title_previous = theme('menu_pager_previous', array('link_title' => $title));
 
         $items['previous'] = array(
           'data' => l($link_title_previous, $navigation['previous']['link_path']),
@@ -84,7 +115,8 @@ function menu_pager_block_view($delta = '', $settings = array(), $contexts = arr
 
       // Next link.
       if (!empty($navigation['next'])) {
-        $link_title_next = theme('menu_pager_next', array('link_title' => $navigation['next']['link_title']));
+        $title = isset($settings['next_label']) ? $settings['next_label'] : $navigation['next']['link_title'] . " >>";
+        $link_title_next = theme('menu_pager_next', array('link_title' => $title));
 
         $items['next'] = array(
           'data' => l($link_title_next, $navigation['next']['link_path']),
@@ -165,7 +197,7 @@ function menu_pager_theme() {
  * @ingroup themeable
  */
 function theme_menu_pager_previous(array $variables) {
-  return '« ' . $variables['link_title'];
+  return $variables['link_title'];
 }
 
 /**
@@ -178,7 +210,7 @@ function theme_menu_pager_previous(array $variables) {
  * @ingroup themeable
  */
 function theme_menu_pager_next(array $variables) {
-  return $variables['link_title'] . ' »';
+  return $variables['link_title'];
 }
 
 /**
