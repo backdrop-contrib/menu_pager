@@ -36,6 +36,9 @@ function menu_pager_block_configure($delta = '', $settings = array()) {
     // Set default value.
     $settings += array(
       'restrict_to_parent' => FALSE,
+      'custom_labels' => FALSE,
+      'previous_label' => '',
+      'next_label' => '',
     );
     $form['restrict_to_parent'] = array(
       '#type' => 'checkbox',
@@ -43,40 +46,39 @@ function menu_pager_block_configure($delta = '', $settings = array()) {
       '#description' => t('If checked, only previous and next links with the same menu parent as the active menu link will be used.'),
       '#default_value' => $settings['restrict_to_parent'],
     );
+    $form['custom_labels'] = array(
+      '#type' => 'checkbox',
+      '#title' => t('Display custom labels'),
+      '#default_value' => $settings['custom_labels'],
+    );
+    $form['previous_label'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Previous label'),
+      '#description' => t('This will overwrite the text for the previous label.<br />Leave empty for node title prefixed with "<< "'),
+      '#maxlength' => 64,
+      '#size' => 64,
+      '#default_value' => isset($settings['previous_label']) ? $settings['previous_label'] : '',
+      '#states' => array(
+        'visible' => array(
+          ':input[name="block_settings[custom_labels]"]' => array('checked' => TRUE),
+        ),
+      ),
+    );
+    $form['next_label'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Next label'),
+      '#description' => t('This will overwrite the text for the next label.<br />Leave empty for node title suffixed with " >>"'),
+      '#maxlength' => 64,
+      '#size' => 64,
+      '#default_value' => isset($settings['next_label']) ? $settings['next_label'] : '',
+      '#states' => array(
+        'visible' => array(
+          ':input[name="block_settings[custom_labels]"]' => array('checked' => TRUE),
+        ),
+      ),
+    );
+    return $form;
   }
-
-  $form['custom_labels'] = array(
-    '#type' => 'checkbox',
-    '#title' => t('Display custom labels'),
-    '#default_value' => $settings['custom_labels'],
-  );
-  $form['previous_label'] = array(
-    '#type' => 'textfield',
-    '#title' => t('Previous label'),
-    '#description' => t('This will overwrite the text for the previous label.<br />Leave empty for node title prefixed with "<< "'),
-    '#maxlength' => 64,
-    '#size' => 64,
-    '#default_value' => isset($settings['previous_label']) ? $settings['previous_label'] : '',
-    '#states' => array(
-      'visible' => array(
-        ':input[name="block_settings[custom_labels]"]' => array('checked' => TRUE),
-      ),
-    ),
-  );
-  $form['next_label'] = array(
-    '#type' => 'textfield',
-    '#title' => t('Next label'),
-    '#description' => t('This will overwrite the text for the next label.<br />Leave empty for node title suffixed with " >>"'),
-    '#maxlength' => 64,
-    '#size' => 64,
-    '#default_value' => isset($settings['next_label']) ? $settings['next_label'] : '',
-    '#states' => array(
-      'visible' => array(
-        ':input[name="block_settings[custom_labels]"]' => array('checked' => TRUE),
-      ),
-    ),
-  );
-  return $form;
 }
 
 /**
