@@ -106,7 +106,7 @@ function menu_pager_block_view($delta = '', $settings = array(), $contexts = arr
 
       // Previous link.
       if (!empty($navigation['previous'])) {
-        $title = isset($settings['previous_label']) ? $settings['previous_label'] : "<< " . $navigation['previous']['link_title'];
+        $title = ($settings['custom_labels'] && isset($settings['previous_label'])) ? $settings['previous_label'] : "<< " . $navigation['previous']['link_title'];
         $link_title_previous = theme('menu_pager_previous', array('link_title' => $title));
 
         $items['previous'] = array(
@@ -117,7 +117,7 @@ function menu_pager_block_view($delta = '', $settings = array(), $contexts = arr
 
       // Next link.
       if (!empty($navigation['next'])) {
-        $title = isset($settings['next_label']) ? $settings['next_label'] : $navigation['next']['link_title'] . " >>";
+        $title = ($settings['custom_labels'] && isset($settings['next_label'])) ? $settings['next_label'] : $navigation['next']['link_title'] . " >>";
         $link_title_next = theme('menu_pager_next', array('link_title' => $title));
 
         $items['next'] = array(
